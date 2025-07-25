@@ -21,7 +21,7 @@ import {ChainConfig, config} from './config'
 import {Wallet} from './wallet'
 import {Resolver} from './resolver'
 import {EscrowFactory} from './escrow-factory'
-import factoryContract from '../dist/contracts/TestEscrowFactory.sol/TestEscrowFactory.json'
+import factoryContract from '../dist/contracts/EscrowFactoryExtended.sol/EscrowFactoryExtended.json'
 import resolverContract from '../dist/contracts/Resolver.sol/Resolver.json'
 
 const {Address} = Sdk
