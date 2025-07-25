@@ -13,7 +13,8 @@ export enum NetworkEnum {
     COINBASE = 8453,
     LINEA = 59144,
     SONIC = 146,
-    UNICHAIN = 130
+    UNICHAIN = 130,
+    MONAD = 10143 // Monad Testnet
 }
 
 export const ONE_INCH_LIMIT_ORDER_V4 =
