@@ -3,9 +3,11 @@ import {
     Extension,
     FusionExtension,
     Interaction,
-    SettlementPostInteractionData,
+    SurplusParams,
     AuctionDetails,
-    NetworkEnum
+    NetworkEnum,
+    Whitelist,
+    Fees
 } from '@1inch/fusion-sdk'
 import {AbiCoder} from 'ethers'
 import {BitMask, BN, trim0x, UINT_128_MAX} from '@1inch/byte-utils'
@@ -37,8 +39,13 @@ export class EscrowExtension extends FusionExtension {
     constructor(
         address: Address,
         auctionDetails: AuctionDetails,
-        postInteractionData: SettlementPostInteractionData,
-        makerPermit: Interaction | undefined,
+        whitelist: Whitelist,
+        surplus: SurplusParams,
+        extra: {
+            makerPermit?: Interaction
+            customReceiver?: Address
+            fees?: Fees
+        } = {},
         public readonly hashLockInfo: HashLock,
         public readonly dstChainId: NetworkEnum,
         public readonly dstToken: Address,
@@ -49,7 +56,7 @@ export class EscrowExtension extends FusionExtension {
         assert(srcSafetyDeposit <= UINT_128_MAX)
         assert(srcSafetyDeposit <= UINT_128_MAX)
 
-        super(address, auctionDetails, postInteractionData, makerPermit)
+        super(address, auctionDetails, whitelist, surplus, extra)
 
         if (this.dstToken.isZero()) {
             this.dstToken = Address.NATIVE_CURRENCY
@@ -87,8 +94,13 @@ export class EscrowExtension extends FusionExtension {
         return new EscrowExtension(
             fusionExt.address,
             fusionExt.auctionDetails,
-            fusionExt.postInteractionData,
-            fusionExt.makerPermit,
+            fusionExt.whitelist,
+            fusionExt.surplus,
+            {
+                makerPermit: fusionExt.extra?.makerPermit,
+                customReceiver: fusionExt.extra?.customReceiver,
+                fees: fusionExt.extra?.fees
+            },
             extra.hashLock,
             extra.dstChainId,
             extra.dstToken,

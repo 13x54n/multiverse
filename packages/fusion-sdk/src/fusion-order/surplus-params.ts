@@ -34,3 +34,6 @@ export class SurplusParams {
         return this.protocolFee.isZero()
     }
 }
+
+// Alias for backward compatibility
+export type SettlementPostInteractionData = SurplusParams

@@ -9,3 +9,6 @@ export type WhitelistItem = {
      */
     delay: bigint
 }
+
+// Alias for backward compatibility
+export type AuctionWhitelistItem = WhitelistItem

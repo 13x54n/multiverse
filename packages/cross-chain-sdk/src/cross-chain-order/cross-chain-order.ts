@@ -8,7 +8,8 @@ import {
     Interaction,
     MakerTraits,
     ZX,
-    SettlementPostInteractionData,
+    SurplusParams,
+    Bps,
     now,
     NetworkEnum
 } from '@1inch/fusion-sdk'
@@ -117,21 +118,23 @@ export class CrossChainOrder {
         details: Details,
         extra?: Extra
     ): CrossChainOrder {
-        const postInteractionData = SettlementPostInteractionData.new({
-            bankFee: details.fees?.bankFee || 0n,
-            integratorFee: details.fees?.integratorFee,
-            whitelist: details.whitelist,
-            resolvingStartTime: details.resolvingStartTime ?? now(),
-            customReceiver: orderInfo.receiver
-        })
+        const surplus = new SurplusParams(
+            details.fees?.estimatedTakerAmount || 0n,
+            details.fees?.protocolFee || Bps.ZERO
+        )
 
         const ext = new EscrowExtension(
             escrowFactory,
             details.auction,
-            postInteractionData,
-            extra?.permit
-                ? new Interaction(orderInfo.makerAsset, extra.permit)
-                : undefined,
+            details.whitelist,
+            surplus,
+            {
+                makerPermit: extra?.permit
+                    ? new Interaction(orderInfo.makerAsset, extra.permit)
+                    : undefined,
+                customReceiver: orderInfo.receiver,
+                fees: details.fees
+            },
             escrowParams.hashLock,
             escrowParams.dstChainId,
             orderInfo.takerAsset,
@@ -233,11 +236,12 @@ export class CrossChainOrder {
      * @param blockBaseFee block fee in wei.
      * */
     public calcTakingAmount(
+        taker: Address,
         makingAmount: bigint,
         time: bigint,
         blockBaseFee?: bigint
     ): bigint {
-        return this.inner.calcTakingAmount(makingAmount, time, blockBaseFee)
+        return this.inner.calcTakingAmount(taker, makingAmount, time, blockBaseFee)
     }
 
     /**
@@ -267,8 +271,13 @@ export class CrossChainOrder {
      * @param filledMakingAmount which resolver fills
      * @see https://github.com/1inch/limit-order-settlement/blob/0e3cae3653092ebb4ea5d2a338c87a54351ad883/contracts/extensions/ResolverFeeExtension.sol#L29
      */
-    public getResolverFee(filledMakingAmount: bigint): bigint {
-        return this.inner.getResolverFee(filledMakingAmount)
+    public getResolverFee(
+        taker: Address,
+        time: bigint,
+        blockBaseFee?: bigint,
+        makingAmount?: bigint
+    ): bigint {
+        return this.inner.getResolverFee(taker, time, blockBaseFee, makingAmount)
     }
 
     /**

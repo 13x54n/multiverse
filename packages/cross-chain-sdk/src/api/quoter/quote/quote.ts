@@ -136,7 +136,7 @@ export class Quote {
                 auction: auctionDetails,
                 fees: {
                     integratorFee: {
-                        ratio: bpsToRatioFormat(this.params.fee) || 0n,
+                        fee: bpsToRatioFormat(this.params.fee) || 0n,
                         receiver: params?.takingFeeReceiver
                             ? new Address(params?.takingFeeReceiver)
                             : Address.ZERO_ADDRESS

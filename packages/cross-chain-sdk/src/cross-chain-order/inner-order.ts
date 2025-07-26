@@ -17,7 +17,8 @@ export class InnerOrder extends FusionOrder {
             extension.address,
             orderInfo,
             extension.auctionDetails,
-            extension.postInteractionData,
+            extension.whitelist,
+            extension.surplus,
             extra,
             extension
         )

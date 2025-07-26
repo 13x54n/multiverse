@@ -35,6 +35,7 @@ export type ActiveOrder = {
     isMakerContract: boolean
     secretHashes?: string[]
     fills: FillInfo[]
+    version: '2.2'
 }
 
 export type ActiveOrdersResponse = PaginationOutput<ActiveOrder>

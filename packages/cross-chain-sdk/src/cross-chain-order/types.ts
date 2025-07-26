@@ -2,7 +2,8 @@ import {
     Address,
     AuctionDetails,
     AuctionWhitelistItem,
-    IntegratorFee
+    IntegratorFee,
+    Fees
 } from '@1inch/fusion-sdk'
 import {HashLock} from './hash-lock'
 import {TimeLocks} from './time-locks'
@@ -50,6 +51,8 @@ export type Extra = {
     source?: string
     allowMultipleFills?: boolean
     allowPartialFills?: boolean
+    unwrapWETH?: boolean
+    fees?: Fees
 }
 
 export type Details = {
