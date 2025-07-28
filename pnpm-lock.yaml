@@ -12,8 +12,8 @@ importers:
         specifier: 2.6.0
         version: 2.6.0
       '@1inch/cross-chain-sdk':
-        specifier: v0.1.15-rc.0
-        version: 0.1.15-rc.0
+        specifier: file:./1inch-cross-chain-sdk-0.1.15-rc.0.tgz
+        version: file:1inch-cross-chain-sdk-0.1.15-rc.0.tgz
       dotenv:
         specifier: 16.4.5
         version: 16.4.5
@@ -105,10 +105,6 @@ importers:
 
 packages:
 
-  '@1inch/byte-utils@2.3.0':
-    resolution: {integrity: sha512-SKRlhemGFKc+15uTgSzsEs0T4WTpVv7lwcWdMTtUdf7tXDVCz+Dvr36pLk4UJxeKW/HqHCQXv9w1rF+yCgG4Tw==}
-    engines: {node: '>=18.16.0'}
-
   '@1inch/byte-utils@2.6.0':
     resolution: {integrity: sha512-9BifLBEFmuqVpI3kAKI6Qefzfxk3UcEEy7PoqXt5lBOdjE1ChZdhkc/BO11Ie44QdmAeH0Rm7Jao4wcb8lHoag==}
     engines: {node: '>=18.16.0'}
@@ -127,8 +123,18 @@ packages:
       assert:
         optional: true
 
-  '@1inch/cross-chain-sdk@0.1.15-rc.0':
-    resolution: {integrity: sha512-MYVF9vUTrxA/T3BGS5u/tpQWjLX2r1t/Ls3zz0t06lSfTGoAzCONFuGW/OfZ5olVAw+rHLK9k/t5sMt3jW/HGg==}
+  '@1inch/byte-utils@3.1.0':
+    resolution: {integrity: sha512-fMxihTlLKvRvy3gvL16DTWkZGDwQXYSEgCLX/+sazb38+YD7IK3HzKaxvAUzg8ODLwQk5oY/o6pqRQKI+9x+OA==}
+    engines: {node: '>=18.16.0'}
+    peerDependencies:
+      assert: ^2.0.0
+    peerDependenciesMeta:
+      assert:
+        optional: true
+
+  '@1inch/cross-chain-sdk@file:1inch-cross-chain-sdk-0.1.15-rc.0.tgz':
+    resolution: {integrity: sha512-t2L0f4TM8Y1F6wwbyKYbEper++0mHDO05pLKjswwQjojMCB3hSfqVrWYahZW4zEF4OnOzm5M3BEaKmAI/0Fxgg==, tarball: file:1inch-cross-chain-sdk-0.1.15-rc.0.tgz}
+    version: 0.1.15-rc.0
     engines: {node: '>=18.16.0'}
     peerDependencies:
       assert: ^2.0.0
@@ -158,8 +164,9 @@ packages:
       prettier: ^3.3.2
       typescript: ^5.5.2
 
-  '@1inch/fusion-sdk@2.1.11-rc.2':
-    resolution: {integrity: sha512-OuCS58rj1TolXQA/bO7TI84h/ncm7YjNlA6Fa1L5Rc5qCtdfA3uCdPn8GITotZ2aR6sz4LopGiVxd227k5ltww==}
+  '@1inch/fusion-sdk@file:1inch-fusion-sdk-2.3.6-rc.0.tgz':
+    resolution: {integrity: sha512-++/8mEobqvuxRpTrIRz1ido+oA/Rm9V0s/CpaJyiQoQQ2mZeA2gfud0LU9H/ErgXGRWRDXPZX8WmjA3i4tjuew==, tarball: file:1inch-fusion-sdk-2.3.6-rc.0.tgz}
+    version: 2.3.6-rc.0
     peerDependencies:
       assert: ^2.0.0
       axios: '>=1 <2'
@@ -169,8 +176,8 @@ packages:
       axios:
         optional: true
 
-  '@1inch/limit-order-sdk@4.13.0':
-    resolution: {integrity: sha512-n+8EG1aY5wSHkiGv3rqJ/0YQPVqiIu6EPgiOrjnx0+82oydmoEJXaj/tGmFUAuxTJkfYGdzbL/d4vzVGWSXP+Q==}
+  '@1inch/limit-order-sdk@5.0.4-rc.0':
+    resolution: {integrity: sha512-2o3gi3caPVEqch0RQsMA+Rl3xtKbUL0FJ2vXtNNZYwN/05m4woJ1UWV00dxCl1h36LyK7L4dn3Q+ySQi2YXQYA==}
     engines: {node: '>=20.9.0'}
     peerDependencies:
       assert: ^2.0.0
@@ -1539,6 +1546,10 @@ packages:
     resolution: {integrity: sha512-+knKNieu5EKRThQJWwqaJ10a6HE9sSehGeqWN65//wE7j47ZpFhKAnHB/JJFibwwg61I/koxaPsXbXpD/skNOQ==}
     engines: {node: '>=14.0.0'}
 
+  ethers@6.15.0:
+    resolution: {integrity: sha512-Kf/3ZW54L4UT0pZtsY/rf+EkBU7Qi5nnhonjUb8yTXcxH3cdcWrV2cRyk0Xk/4jK6OoHhxxZHriyhje20If2hQ==}
+    engines: {node: '>=14.0.0'}
+
   eventemitter3@4.0.7:
     resolution: {integrity: sha512-8guHBZCwKnFhYdHr2ysuRWErTwhoN2X8XELRlrRwpmfeY2jjuUN4taQMsULKUVo1K4DvZl+0pgfyoysHxvmvEw==}
 
@@ -2883,16 +2894,17 @@ packages:
 
 snapshots:
 
-  '@1inch/byte-utils@2.3.0': {}
-
   '@1inch/byte-utils@2.6.0': {}
 
   '@1inch/byte-utils@3.0.0': {}
 
-  '@1inch/cross-chain-sdk@0.1.15-rc.0':
+  '@1inch/byte-utils@3.1.0': {}
+
+  '@1inch/cross-chain-sdk@file:1inch-cross-chain-sdk-0.1.15-rc.0.tgz':
     dependencies:
       '@1inch/byte-utils': 2.6.0
-      '@1inch/fusion-sdk': 2.1.11-rc.2(axios@1.8.2)
+      '@1inch/fusion-sdk': file:1inch-fusion-sdk-2.3.6-rc.0.tgz(axios@1.8.2)
+      '@1inch/limit-order-sdk': 5.0.4-rc.0(axios@1.8.2)
       '@openzeppelin/merkle-tree': 1.0.7
       axios: 1.8.2
       ecies-25519: 1.3.1
@@ -2926,12 +2938,12 @@ snapshots:
       semver: 7.7.2
       typescript: 5.5.2
 
-  '@1inch/fusion-sdk@2.1.11-rc.2(axios@1.8.2)':
+  '@1inch/fusion-sdk@file:1inch-fusion-sdk-2.3.6-rc.0.tgz(axios@1.8.2)':
     dependencies:
-      '@1inch/byte-utils': 2.3.0
-      '@1inch/limit-order-sdk': 4.13.0(axios@1.8.2)
-      ethers: 6.13.2
-      tslib: 2.6.3
+      '@1inch/byte-utils': 3.1.0
+      '@1inch/limit-order-sdk': 5.0.4-rc.0(axios@1.8.2)
+      ethers: 6.15.0
+      tslib: 2.8.1
       ws: 8.18.3
     optionalDependencies:
       axios: 1.8.2
@@ -2939,7 +2951,7 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@1inch/limit-order-sdk@4.13.0(axios@1.8.2)':
+  '@1inch/limit-order-sdk@5.0.4-rc.0(axios@1.8.2)':
     dependencies:
       '@1inch/byte-utils': 3.0.0
       ethers: 6.13.5
@@ -4669,6 +4681,19 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
+  ethers@6.15.0:
+    dependencies:
+      '@adraffy/ens-normalize': 1.10.1
+      '@noble/curves': 1.2.0
+      '@noble/hashes': 1.3.2
+      '@types/node': 22.7.5
+      aes-js: 4.0.0-beta.5
+      tslib: 2.7.0
+      ws: 8.17.1
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
+
   eventemitter3@4.0.7: {}
 
   eventemitter3@5.0.1: {}
@@ -6028,8 +6053,7 @@ snapshots:
 
   tslib@2.7.0: {}
 
-  tslib@2.8.1:
-    optional: true
+  tslib@2.8.1: {}
 
   type-check@0.4.0:
     dependencies:

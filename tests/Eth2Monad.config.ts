@@ -33,7 +33,7 @@ export const config = {
             }
         },
         destination: {
-            chainId: 10143,
+            chainId: Sdk.NetworkEnum.MONAD,
             url: fromEnv.DST_CHAIN_RPC,
             createFork: fromEnv.DST_CHAIN_CREATE_FORK,
             limitOrderProtocol: '0x7d17CEe0E884f8F686415e9f9D0a2D980182a311',
