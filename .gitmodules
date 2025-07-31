@@ -1,6 +1,0 @@
-[submodule "monad-cross-chain-resolver/lib/forge-std"]
-	path = monad-cross-chain-resolver/lib/forge-std
-	url = https://github.com/foundry-rs/forge-std
-[submodule "monad-cross-chain-resolver/lib/openzeppelin-contracts"]
-	path = monad-cross-chain-resolver/lib/openzeppelin-contracts
-	url = https://github.com/OpenZeppelin/openzeppelin-contracts
