@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1inch Fusion+ Cross-Chain Swap</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .swap-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: #333;
+            font-size: 0.9em;
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .chain-selector {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .chain-selector select {
+            flex: 1;
+        }
+
+        .arrow {
+            font-size: 1.5em;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .token-input {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .token-input input {
+            flex: 1;
+        }
+
+        .token-input select {
+            width: 120px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            font-weight: 500;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .order-details {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .order-details h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .order-details p {
+            margin: 5px 0;
+            color: #666;
+        }
+
+        .order-details strong {
+            color: #333;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .features {
+            margin-top: 30px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .feature {
+            text-align: center;
+            padding: 15px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 10px;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .feature h4 {
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .feature p {
+            color: #666;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>1inch Fusion+</h1>
+            <p>Cross-Chain Swap between Ethereum and Monad</p>
+        </div>
+
+        <form class="swap-form" id="swapForm">
+            <div class="form-group">
+                <label>Source Chain</label>
+                <select id="srcChain" required>
+                    <option value="1">Ethereum</option>
+                    <option value="1337">Monad</option>
+                </select>
+            </div>
+
+            <div class="chain-selector">
+                <select id="srcToken" required>
+                    <option value="0x0000000000000000000000000000000000000000">ETH</option>
+                    <option value="0xA0b86a33E6441b8C4C3B0C8C3B0C8C3B0C8C3B0C">USDC</option>
+                </select>
+                <div class="arrow">→</div>
+                <select id="dstToken" required>
+                    <option value="0xB0b86a33E6441b8C4C3B0C8C3B0C8C3B0C8C3B0C">USDC</option>
+                    <option value="0x0000000000000000000000000000000000000000">ETH</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Destination Chain</label>
+                <select id="dstChain" required>
+                    <option value="1337">Monad</option>
+                    <option value="1">Ethereum</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Amount</label>
+                <div class="token-input">
+                    <input type="number" id="amount" placeholder="0.0" step="0.001" min="0.001" required>
+                    <select id="amountToken">
+                        <option value="ETH">ETH</option>
+                        <option value="USDC">USDC</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Recipient Address</label>
+                <input type="text" id="recipient" placeholder="0x..." required>
+            </div>
+
+            <div class="form-group">
+                <label>Timelock (minutes)</label>
+                <input type="number" id="timelock" placeholder="30" min="5" max="1440" value="30" required>
+            </div>
+
+            <button type="submit" class="btn" id="createOrderBtn">Create Fusion+ Order</button>
+        </form>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Processing transaction...</p>
+        </div>
+
+        <div class="status" id="status" style="display: none;"></div>
+
+        <div class="order-details" id="orderDetails" style="display: none;">
+            <h3>Order Details</h3>
+            <p><strong>Order Hash:</strong> <span id="orderHash"></span></p>
+            <p><strong>Status:</strong> <span id="orderStatus"></span></p>
+            <p><strong>Amount:</strong> <span id="orderAmount"></span></p>
+            <p><strong>Timelock:</strong> <span id="orderTimelock"></span></p>
+            <p><strong>Deadline:</strong> <span id="orderDeadline"></span></p>
+        </div>
+
+        <div class="features">
+            <div class="feature">
+                <h4>🔒 Hashlock</h4>
+                <p>Cryptographic security with secret-based withdrawals</p>
+            </div>
+            <div class="feature">
+                <h4>⏰ Timelock</h4>
+                <p>Configurable time-based security periods</p>
+            </div>
+            <div class="feature">
+                <h4>🔄 Bidirectional</h4>
+                <p>Swap in both directions between chains</p>
+            </div>
+            <div class="feature">
+                <h4>📊 Partial Fills</h4>
+                <p>Support for partial order execution</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Mock Web3 integration
+        class FusionPlusUI {
+            constructor() {
+                this.form = document.getElementById('swapForm');
+                this.loading = document.getElementById('loading');
+                this.status = document.getElementById('status');
+                this.orderDetails = document.getElementById('orderDetails');
+                
+                this.setupEventListeners();
+            }
+
+            setupEventListeners() {
+                this.form.addEventListener('submit', (e) => this.handleSubmit(e));
+                
+                // Update destination chain when source changes
+                document.getElementById('srcChain').addEventListener('change', () => this.updateDestinationChain());
+                document.getElementById('dstChain').addEventListener('change', () => this.updateSourceChain());
+            }
+
+            updateDestinationChain() {
+                const srcChain = document.getElementById('srcChain').value;
+                const dstChain = document.getElementById('dstChain');
+                
+                if (srcChain === '1') {
+                    dstChain.value = '1337';
+                } else {
+                    dstChain.value = '1';
+                }
+            }
+
+            updateSourceChain() {
+                const dstChain = document.getElementById('dstChain').value;
+                const srcChain = document.getElementById('srcChain');
+                
+                if (dstChain === '1') {
+                    srcChain.value = '1337';
+                } else {
+                    srcChain.value = '1';
+                }
+            }
+
+            async handleSubmit(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(this.form);
+                const orderData = {
+                    srcChainId: parseInt(document.getElementById('srcChain').value),
+                    dstChainId: parseInt(document.getElementById('dstChain').value),
+                    srcToken: document.getElementById('srcToken').value,
+                    dstToken: document.getElementById('dstToken').value,
+                    amount: document.getElementById('amount').value,
+                    recipient: document.getElementById('recipient').value,
+                    timelock: parseInt(document.getElementById('timelock').value) * 60, // Convert to seconds
+                    deadline: Math.floor(Date.now() / 1000) + 3600 // 1 hour from now
+                };
+
+                this.showLoading();
+                this.hideStatus();
+
+                try {
+                    // Simulate blockchain interaction
+                    await this.simulateCreateOrder(orderData);
+                    
+                    this.showSuccess('Fusion+ order created successfully!');
+                    this.displayOrderDetails(orderData);
+                } catch (error) {
+                    this.showError('Failed to create order: ' + error.message);
+                } finally {
+                    this.hideLoading();
+                }
+            }
+
+            async simulateCreateOrder(orderData) {
+                // Simulate network delay
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                // Generate mock order hash
+                const orderHash = '0x' + Math.random().toString(16).substr(2, 64);
+                
+                // Simulate success/failure
+                if (Math.random() > 0.1) { // 90% success rate
+                    return {
+                        orderHash,
+                        status: 'active',
+                        ...orderData
+                    };
+                } else {
+                    throw new Error('Insufficient balance');
+                }
+            }
+
+            displayOrderDetails(orderData) {
+                document.getElementById('orderHash').textContent = orderData.orderHash;
+                document.getElementById('orderStatus').textContent = 'Active';
+                document.getElementById('orderAmount').textContent = orderData.amount + ' tokens';
+                document.getElementById('orderTimelock').textContent = (orderData.timelock / 60) + ' minutes';
+                document.getElementById('orderDeadline').textContent = new Date(orderData.deadline * 1000).toLocaleString();
+                
+                this.orderDetails.style.display = 'block';
+            }
+
+            showLoading() {
+                this.loading.style.display = 'block';
+                document.getElementById('createOrderBtn').disabled = true;
+            }
+
+            hideLoading() {
+                this.loading.style.display = 'none';
+                document.getElementById('createOrderBtn').disabled = false;
+            }
+
+            showStatus(message, type) {
+                this.status.textContent = message;
+                this.status.className = `status ${type}`;
+                this.status.style.display = 'block';
+            }
+
+            showSuccess(message) {
+                this.showStatus(message, 'success');
+            }
+
+            showError(message) {
+                this.showStatus(message, 'error');
+            }
+
+            showInfo(message) {
+                this.showStatus(message, 'info');
+            }
+
+            hideStatus() {
+                this.status.style.display = 'none';
+            }
+        }
+
+        // Initialize the UI when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new FusionPlusUI();
+        });
+    </script>
+</body>
+</html> 

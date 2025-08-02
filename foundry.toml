@@ -1,0 +1,13 @@
+[profile.default]
+solc = "0.8.23"
+src = 'src'
+out = 'out'
+libs = ['contracts/lib']
+
+via_ir = true
+optimizer_runs = 1000000
+eth-rpc-url = 'http://localhost:8545'
+
+fs_permissions = [{ access = "read", path = "out" }, { access = "read-write", path = ".forge-snapshots/" }]
+
+extra_output = ['storageLayout']
