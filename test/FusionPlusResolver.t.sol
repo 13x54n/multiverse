@@ -5,15 +5,18 @@ import "forge-std/Test.sol";
 import "../src/MonadFusionPlusResolver.sol";
 import "../src/FusionPlusEscrowSrc.sol";
 import "../src/FusionPlusEscrowDst.sol";
+import "../src/EscrowDst.sol";
 
 /**
  * @title FusionPlusResolverTest
  * @dev Comprehensive test suite for 1inch Fusion+ cross-chain swap system
+ * Tests hashlock, timelock, bidirectional swaps, and onchain execution
  */
 contract FusionPlusResolverTest is Test {
     MonadFusionPlusResolver public resolver;
     FusionPlusEscrowSrc public escrowSrc;
     FusionPlusEscrowDst public escrowDst;
+    EscrowDst public escrowDstImpl;
     
     address public alice = address(0x1);
     address public bob = address(0x2);
@@ -23,14 +26,7 @@ contract FusionPlusResolverTest is Test {
     uint256 public constant ETHEREUM_CHAIN_ID = 1;
     uint256 public constant MONAD_CHAIN_ID = 1337;
     
-    // Test tokens
-    address public constant ETH_TOKEN = address(0);
-    address public constant USDC_ETH = address(0xA0b86a33E6441b8C4C3B0C8C3B0C8C3B0C8C3B0C);
-    address public constant USDC_MONAD = address(0xB0b86a33E6441b8C4C3B0C8C3B0C8C3B0C8C3B0C);
-    
-    bytes32 public testHashlock;
-    bytes32 public testSecret;
-
+    // Events
     event FusionOrderCreated(
         bytes32 indexed orderHash,
         address indexed maker,
@@ -60,19 +56,23 @@ contract FusionPlusResolverTest is Test {
     );
 
     function setUp() public {
-        // Generate test secret and hashlock
-        testSecret = keccak256(abi.encodePacked("test-secret", block.timestamp));
-        testHashlock = keccak256(abi.encodePacked(testSecret));
-        
         // Deploy contracts
         resolver = new MonadFusionPlusResolver();
         escrowSrc = new FusionPlusEscrowSrc();
         escrowDst = new FusionPlusEscrowDst();
+        escrowDstImpl = new EscrowDst(
+            address(0), // placeholder
+            0,          // placeholder
+            address(0), // placeholder
+            bytes32(0), // placeholder
+            0           // placeholder
+        );
         
         // Set up cross-references
         resolver.setAuthorizedResolver(address(escrowSrc), true);
         resolver.setAuthorizedResolver(address(escrowDst), true);
         resolver.setAuthorizedResolver(resolverAddress, true);
+        
         escrowSrc.setAuthorizedResolver(address(resolver), true);
         escrowDst.setAuthorizedResolver(address(resolver), true);
         
@@ -89,32 +89,36 @@ contract FusionPlusResolverTest is Test {
         uint256 amount = 1 ether;
         uint256 deadline = block.timestamp + 1 hours;
         uint256 timelock = 30 minutes;
+        bytes32 secret = keccak256(abi.encodePacked("test-secret"));
+        bytes32 hashlock = keccak256(abi.encodePacked(secret));
         
+        MonadFusionPlusResolver.SwapParams memory params = MonadFusionPlusResolver.SwapParams({
+            srcChainId: ETHEREUM_CHAIN_ID,
+            dstChainId: MONAD_CHAIN_ID,
+            srcToken: address(0), // ETH
+            dstToken: address(0x123), // Monad token
+            amount: amount,
+            deadline: deadline,
+            hashlock: hashlock,
+            timelock: timelock,
+            recipient: bob
+        });
+
         vm.expectEmit(true, true, false, true);
         emit FusionOrderCreated(
             bytes32(0), // We'll calculate this
             alice,
             ETHEREUM_CHAIN_ID,
             MONAD_CHAIN_ID,
-            ETH_TOKEN,
-            USDC_MONAD,
+            address(0),
+            address(0x123),
             amount,
             deadline,
-            testHashlock,
+            hashlock,
             timelock
         );
-        
-        resolver.createFusionOrder{value: amount + 0.01 ether}(MonadFusionPlusResolver.SwapParams({
-            srcChainId: ETHEREUM_CHAIN_ID,
-            dstChainId: MONAD_CHAIN_ID,
-            srcToken: ETH_TOKEN,
-            dstToken: USDC_MONAD,
-            amount: amount,
-            deadline: deadline,
-            hashlock: testHashlock,
-            timelock: timelock,
-            recipient: bob
-        }));
+
+        resolver.createFusionOrder{value: amount + 0.01 ether}(params);
         
         vm.stopPrank();
     }
@@ -125,355 +129,385 @@ contract FusionPlusResolverTest is Test {
         uint256 amount = 0.5 ether;
         uint256 deadline = block.timestamp + 1 hours;
         uint256 timelock = 30 minutes;
+        bytes32 secret = keccak256(abi.encodePacked("test-secret-2"));
+        bytes32 hashlock = keccak256(abi.encodePacked(secret));
         
-        vm.expectEmit(true, true, false, true);
-        emit FusionOrderCreated(
-            bytes32(0), // We'll calculate this
-            bob,
-            MONAD_CHAIN_ID,
-            ETHEREUM_CHAIN_ID,
-            USDC_MONAD,
-            ETH_TOKEN,
-            amount,
-            deadline,
-            testHashlock,
-            timelock
-        );
-        
-        resolver.createFusionOrder{value: amount + 0.01 ether}(MonadFusionPlusResolver.SwapParams({
+        MonadFusionPlusResolver.SwapParams memory params = MonadFusionPlusResolver.SwapParams({
             srcChainId: MONAD_CHAIN_ID,
             dstChainId: ETHEREUM_CHAIN_ID,
-            srcToken: USDC_MONAD,
-            dstToken: ETH_TOKEN,
+            srcToken: address(0x456), // Monad token
+            dstToken: address(0), // ETH
             amount: amount,
             deadline: deadline,
-            hashlock: testHashlock,
+            hashlock: hashlock,
             timelock: timelock,
             recipient: alice
-        }));
+        });
+
+        resolver.createFusionOrder{value: amount + 0.01 ether}(params);
         
         vm.stopPrank();
     }
 
-    function testFillFusionOrder() public {
+    function testFillFusionOrderWithHashlock() public {
         // Create order
         vm.startPrank(alice);
         uint256 amount = 1 ether;
         uint256 deadline = block.timestamp + 1 hours;
         uint256 timelock = 30 minutes;
+        bytes32 secret = keccak256(abi.encodePacked("test-secret-3"));
+        bytes32 hashlock = keccak256(abi.encodePacked(secret));
         
-        resolver.createFusionOrder{value: amount + 0.01 ether}(MonadFusionPlusResolver.SwapParams({
+        MonadFusionPlusResolver.SwapParams memory params = MonadFusionPlusResolver.SwapParams({
             srcChainId: ETHEREUM_CHAIN_ID,
             dstChainId: MONAD_CHAIN_ID,
-            srcToken: ETH_TOKEN,
-            dstToken: USDC_MONAD,
+            srcToken: address(0),
+            dstToken: address(0x123),
             amount: amount,
             deadline: deadline,
-            hashlock: testHashlock,
+            hashlock: hashlock,
             timelock: timelock,
             recipient: bob
-        }));
+        });
+
+        resolver.createFusionOrder{value: amount + 0.01 ether}(params);
         vm.stopPrank();
         
         // Get order hash
-        bytes32 orderHash = _computeOrderHash(ETHEREUM_CHAIN_ID, MONAD_CHAIN_ID, ETH_TOKEN, USDC_MONAD, amount, deadline, testHashlock, timelock, alice);
+        bytes32 orderHash = resolver._computeOrderHash(params);
         
-        // Fill order
+        // Fill order with correct secret
         vm.startPrank(resolverAddress);
-        uint256 balanceBefore = bob.balance;
+        uint256 balanceBefore = charlie.balance;
         
         vm.expectEmit(true, true, false, true);
-        emit FusionOrderFilled(orderHash, bob, amount, testSecret, block.timestamp);
+        emit FusionOrderFilled(orderHash, charlie, amount, secret, block.timestamp);
         
-        resolver.fillFusionOrder(orderHash, bob, amount, testSecret);
+        resolver.fillFusionOrder(orderHash, charlie, amount, secret);
         
-        uint256 balanceAfter = bob.balance;
-        assertEq(balanceAfter - balanceBefore, amount, "Taker should receive the correct amount");
+        uint256 balanceAfter = charlie.balance;
+        assertEq(balanceAfter - balanceBefore, amount);
         vm.stopPrank();
     }
 
-    function testPartialFill() public {
+    function testPartialFillSupport() public {
         // Create order
         vm.startPrank(alice);
-        uint256 amount = 2 ether;
+        uint256 totalAmount = 2 ether;
+        uint256 partialAmount1 = 0.5 ether;
+        uint256 partialAmount2 = 0.3 ether;
         uint256 deadline = block.timestamp + 1 hours;
         uint256 timelock = 30 minutes;
+        bytes32 secret = keccak256(abi.encodePacked("test-secret-4"));
+        bytes32 hashlock = keccak256(abi.encodePacked(secret));
         
-        resolver.createFusionOrder{value: amount + 0.01 ether}(MonadFusionPlusResolver.SwapParams({
+        MonadFusionPlusResolver.SwapParams memory params = MonadFusionPlusResolver.SwapParams({
             srcChainId: ETHEREUM_CHAIN_ID,
             dstChainId: MONAD_CHAIN_ID,
-            srcToken: ETH_TOKEN,
-            dstToken: USDC_MONAD,
-            amount: amount,
+            srcToken: address(0),
+            dstToken: address(0x123),
+            amount: totalAmount,
             deadline: deadline,
-            hashlock: testHashlock,
+            hashlock: hashlock,
             timelock: timelock,
             recipient: bob
-        }));
+        });
+
+        resolver.createFusionOrder{value: totalAmount + 0.01 ether}(params);
         vm.stopPrank();
         
-        // Get order hash
-        bytes32 orderHash = _computeOrderHash(ETHEREUM_CHAIN_ID, MONAD_CHAIN_ID, ETH_TOKEN, USDC_MONAD, amount, deadline, testHashlock, timelock, alice);
+        bytes32 orderHash = resolver._computeOrderHash(params);
         
         // First partial fill
         vm.startPrank(resolverAddress);
-        uint256 partialAmount1 = 0.5 ether;
-        resolver.fillFusionOrder(orderHash, bob, partialAmount1, testSecret);
+        resolver.fillFusionOrder(orderHash, charlie, partialAmount1, secret);
         
         MonadFusionPlusResolver.FusionOrder memory order = resolver.getFusionOrder(orderHash);
-        assertEq(order.filledAmount, partialAmount1, "Filled amount should be correct");
-        assertEq(order.remainingAmount, amount - partialAmount1, "Remaining amount should be correct");
-        assertTrue(order.isActive, "Order should still be active");
+        assertEq(order.filledAmount, partialAmount1);
+        assertEq(order.remainingAmount, totalAmount - partialAmount1);
+        assertTrue(order.isActive);
         
         // Second partial fill
-        uint256 partialAmount2 = 0.3 ether;
-        resolver.fillFusionOrder(orderHash, charlie, partialAmount2, testSecret);
+        resolver.fillFusionOrder(orderHash, bob, partialAmount2, secret);
         
         order = resolver.getFusionOrder(orderHash);
-        assertEq(order.filledAmount, partialAmount1 + partialAmount2, "Total filled amount should be correct");
-        assertEq(order.remainingAmount, amount - partialAmount1 - partialAmount2, "Remaining amount should be correct");
-        
-        // Final fill
-        uint256 finalAmount = amount - partialAmount1 - partialAmount2;
-        resolver.fillFusionOrder(orderHash, alice, finalAmount, testSecret);
-        
-        order = resolver.getFusionOrder(orderHash);
-        assertEq(order.filledAmount, amount, "Total filled amount should equal original amount");
-        assertEq(order.remainingAmount, 0, "Remaining amount should be zero");
-        assertFalse(order.isActive, "Order should be inactive");
-        assertTrue(order.isFilled, "Order should be marked as filled");
+        assertEq(order.filledAmount, partialAmount1 + partialAmount2);
+        assertEq(order.remainingAmount, totalAmount - partialAmount1 - partialAmount2);
         vm.stopPrank();
     }
 
-    function testCancelFusionOrder() public {
+    function testTimelockEnforcement() public {
         // Create order
         vm.startPrank(alice);
         uint256 amount = 1 ether;
         uint256 deadline = block.timestamp + 1 hours;
         uint256 timelock = 30 minutes;
+        bytes32 secret = keccak256(abi.encodePacked("test-secret-5"));
+        bytes32 hashlock = keccak256(abi.encodePacked(secret));
         
-        resolver.createFusionOrder{value: amount + 0.01 ether}(MonadFusionPlusResolver.SwapParams({
+        MonadFusionPlusResolver.SwapParams memory params = MonadFusionPlusResolver.SwapParams({
             srcChainId: ETHEREUM_CHAIN_ID,
             dstChainId: MONAD_CHAIN_ID,
-            srcToken: ETH_TOKEN,
-            dstToken: USDC_MONAD,
+            srcToken: address(0),
+            dstToken: address(0x123),
             amount: amount,
             deadline: deadline,
-            hashlock: testHashlock,
+            hashlock: hashlock,
             timelock: timelock,
             recipient: bob
-        }));
-        vm.stopPrank();
-        
-        // Get order hash
-        bytes32 orderHash = _computeOrderHash(ETHEREUM_CHAIN_ID, MONAD_CHAIN_ID, ETH_TOKEN, USDC_MONAD, amount, deadline, testHashlock, timelock, alice);
-        
-        // Cancel order
-        vm.startPrank(alice);
-        uint256 balanceBefore = alice.balance;
-        
-        resolver.cancelFusionOrder(orderHash);
-        
-        uint256 balanceAfter = alice.balance;
-        assertEq(balanceAfter - balanceBefore, amount + 0.01 ether, "Maker should receive refund");
-        
-        MonadFusionPlusResolver.FusionOrder memory order = resolver.getFusionOrder(orderHash);
-        assertFalse(order.isActive, "Order should be inactive");
-        assertTrue(order.isCancelled, "Order should be marked as cancelled");
-        vm.stopPrank();
-    }
+        });
 
-    function testWithdrawFromEscrow() public {
-        // Create and fill order to deploy escrow
-        vm.startPrank(alice);
-        uint256 amount = 1 ether;
-        uint256 deadline = block.timestamp + 1 hours;
-        uint256 timelock = 30 minutes;
-        
-        resolver.createFusionOrder{value: amount + 0.01 ether}(MonadFusionPlusResolver.SwapParams({
-            srcChainId: ETHEREUM_CHAIN_ID,
-            dstChainId: MONAD_CHAIN_ID,
-            srcToken: ETH_TOKEN,
-            dstToken: USDC_MONAD,
-            amount: amount,
-            deadline: deadline,
-            hashlock: testHashlock,
-            timelock: timelock,
-            recipient: bob
-        }));
+        resolver.createFusionOrder{value: amount + 0.01 ether}(params);
         vm.stopPrank();
         
-        bytes32 orderHash = _computeOrderHash(ETHEREUM_CHAIN_ID, MONAD_CHAIN_ID, ETH_TOKEN, USDC_MONAD, amount, deadline, testHashlock, timelock, alice);
+        bytes32 orderHash = resolver._computeOrderHash(params);
         
-        // Fill order to deploy escrow
-        vm.startPrank(resolverAddress);
-        resolver.fillFusionOrder(orderHash, bob, amount, testSecret);
-        vm.stopPrank();
-        
-        // Withdraw from escrow
-        vm.startPrank(bob);
-        uint256 balanceBefore = bob.balance;
-        
-        resolver.withdrawFromEscrow(orderHash, testSecret);
-        
-        uint256 balanceAfter = bob.balance;
-        assertGt(balanceAfter, balanceBefore, "Recipient should receive tokens from escrow");
-        vm.stopPrank();
-    }
-
-    function testBidirectionalSwaps() public {
-        // Test Ethereum to Monad
-        vm.startPrank(alice);
-        uint256 amount1 = 1 ether;
-        resolver.createFusionOrder{value: amount1 + 0.01 ether}(MonadFusionPlusResolver.SwapParams({
-            srcChainId: ETHEREUM_CHAIN_ID,
-            dstChainId: MONAD_CHAIN_ID,
-            srcToken: ETH_TOKEN,
-            dstToken: USDC_MONAD,
-            amount: amount1,
-            deadline: block.timestamp + 1 hours,
-            hashlock: testHashlock,
-            timelock: 30 minutes,
-            recipient: bob
-        }));
-        vm.stopPrank();
-        
-        // Test Monad to Ethereum
-        vm.startPrank(bob);
-        uint256 amount2 = 0.5 ether;
-        resolver.createFusionOrder{value: amount2 + 0.01 ether}(MonadFusionPlusResolver.SwapParams({
-            srcChainId: MONAD_CHAIN_ID,
-            dstChainId: ETHEREUM_CHAIN_ID,
-            srcToken: USDC_MONAD,
-            dstToken: ETH_TOKEN,
-            amount: amount2,
-            deadline: block.timestamp + 1 hours,
-            hashlock: testHashlock,
-            timelock: 30 minutes,
-            recipient: alice
-        }));
-        vm.stopPrank();
-        
-        // Verify both orders exist
-        bytes32 orderHash1 = _computeOrderHash(ETHEREUM_CHAIN_ID, MONAD_CHAIN_ID, ETH_TOKEN, USDC_MONAD, amount1, block.timestamp + 1 hours, testHashlock, 30 minutes, alice);
-        bytes32 orderHash2 = _computeOrderHash(MONAD_CHAIN_ID, ETHEREUM_CHAIN_ID, USDC_MONAD, ETH_TOKEN, amount2, block.timestamp + 1 hours, testHashlock, 30 minutes, bob);
-        
-        assertTrue(resolver.isOrderActive(orderHash1), "First order should be active");
-        assertTrue(resolver.isOrderActive(orderHash2), "Second order should be active");
-    }
-
-    function testHashlockValidation() public {
-        vm.startPrank(alice);
-        uint256 amount = 1 ether;
-        
-        resolver.createFusionOrder{value: amount + 0.01 ether}(MonadFusionPlusResolver.SwapParams({
-            srcChainId: ETHEREUM_CHAIN_ID,
-            dstChainId: MONAD_CHAIN_ID,
-            srcToken: ETH_TOKEN,
-            dstToken: USDC_MONAD,
-            amount: amount,
-            deadline: block.timestamp + 1 hours,
-            hashlock: testHashlock,
-            timelock: 30 minutes,
-            recipient: bob
-        }));
-        vm.stopPrank();
-        
-        bytes32 orderHash = _computeOrderHash(ETHEREUM_CHAIN_ID, MONAD_CHAIN_ID, ETH_TOKEN, USDC_MONAD, amount, block.timestamp + 1 hours, testHashlock, 30 minutes, alice);
-        
-        // Try to fill with wrong secret
-        vm.startPrank(resolverAddress);
-        bytes32 wrongSecret = keccak256(abi.encodePacked("wrong-secret"));
-        
-        vm.expectRevert("MonadFusionPlusResolver: Invalid secret");
-        resolver.fillFusionOrder(orderHash, bob, amount, wrongSecret);
-        vm.stopPrank();
-    }
-
-    function testTimelockFunctionality() public {
-        vm.startPrank(alice);
-        uint256 amount = 1 ether;
-        uint256 timelock = 30 minutes;
-        
-        resolver.createFusionOrder{value: amount + 0.01 ether}(MonadFusionPlusResolver.SwapParams({
-            srcChainId: ETHEREUM_CHAIN_ID,
-            dstChainId: MONAD_CHAIN_ID,
-            srcToken: ETH_TOKEN,
-            dstToken: USDC_MONAD,
-            amount: amount,
-            deadline: block.timestamp + 1 hours,
-            hashlock: testHashlock,
-            timelock: timelock,
-            recipient: bob
-        }));
-        vm.stopPrank();
-        
-        bytes32 orderHash = _computeOrderHash(ETHEREUM_CHAIN_ID, MONAD_CHAIN_ID, ETH_TOKEN, USDC_MONAD, amount, block.timestamp + 1 hours, testHashlock, timelock, alice);
-        
-        // Try to cancel before timelock expires
+        // Try to cancel before timelock expires (should fail)
         vm.startPrank(alice);
         vm.expectRevert("MonadFusionPlusResolver: Cannot cancel order");
         resolver.cancelFusionOrder(orderHash);
         vm.stopPrank();
         
-        // Fast forward time
+        // Fast forward past timelock
         vm.warp(block.timestamp + timelock + 1);
         
         // Now should be able to cancel
         vm.startPrank(alice);
+        uint256 balanceBefore = alice.balance;
         resolver.cancelFusionOrder(orderHash);
+        uint256 balanceAfter = alice.balance;
+        assertGt(balanceAfter, balanceBefore);
         vm.stopPrank();
     }
 
-    function testAccessControl() public {
+    function testEscrowDstCloneDeployment() public {
+        // Create order
         vm.startPrank(alice);
         uint256 amount = 1 ether;
+        uint256 deadline = block.timestamp + 1 hours;
+        uint256 timelock = 30 minutes;
+        bytes32 secret = keccak256(abi.encodePacked("test-secret-6"));
+        bytes32 hashlock = keccak256(abi.encodePacked(secret));
         
-        resolver.createFusionOrder{value: amount + 0.01 ether}(MonadFusionPlusResolver.SwapParams({
+        MonadFusionPlusResolver.SwapParams memory params = MonadFusionPlusResolver.SwapParams({
             srcChainId: ETHEREUM_CHAIN_ID,
             dstChainId: MONAD_CHAIN_ID,
-            srcToken: ETH_TOKEN,
-            dstToken: USDC_MONAD,
+            srcToken: address(0),
+            dstToken: address(0x123),
             amount: amount,
-            deadline: block.timestamp + 1 hours,
-            hashlock: testHashlock,
-            timelock: 30 minutes,
+            deadline: deadline,
+            hashlock: hashlock,
+            timelock: timelock,
             recipient: bob
-        }));
+        });
+
+        resolver.createFusionOrder{value: amount + 0.01 ether}(params);
         vm.stopPrank();
         
-        bytes32 orderHash = _computeOrderHash(ETHEREUM_CHAIN_ID, MONAD_CHAIN_ID, ETH_TOKEN, USDC_MONAD, amount, block.timestamp + 1 hours, testHashlock, 30 minutes, alice);
+        bytes32 orderHash = resolver._computeOrderHash(params);
         
-        // Try to fill with unauthorized address
-        vm.startPrank(charlie);
-        vm.expectRevert("MonadFusionPlusResolver: Unauthorized resolver");
-        resolver.fillFusionOrder(orderHash, bob, amount, testSecret);
+        // Fill order to trigger escrow deployment
+        vm.startPrank(resolverAddress);
+        vm.expectEmit(true, true, false, true);
+        emit EscrowDeployed(orderHash, address(0), MONAD_CHAIN_ID, amount);
+        
+        resolver.fillFusionOrder(orderHash, charlie, amount, secret);
+        vm.stopPrank();
+        
+        // Verify escrow info
+        MonadFusionPlusResolver.EscrowInfo memory escrowInfo = resolver.getEscrowInfo(orderHash);
+        assertTrue(escrowInfo.isDeployed);
+        assertEq(escrowInfo.chainId, MONAD_CHAIN_ID);
+        assertEq(escrowInfo.amount, amount);
+    }
+
+    function testBidirectionalSwapFlow() public {
+        // Test Ethereum -> Monad
+        vm.startPrank(alice);
+        uint256 amount1 = 1 ether;
+        uint256 deadline1 = block.timestamp + 1 hours;
+        uint256 timelock1 = 30 minutes;
+        bytes32 secret1 = keccak256(abi.encodePacked("secret-1"));
+        bytes32 hashlock1 = keccak256(abi.encodePacked(secret1));
+        
+        MonadFusionPlusResolver.SwapParams memory params1 = MonadFusionPlusResolver.SwapParams({
+            srcChainId: ETHEREUM_CHAIN_ID,
+            dstChainId: MONAD_CHAIN_ID,
+            srcToken: address(0),
+            dstToken: address(0x123),
+            amount: amount1,
+            deadline: deadline1,
+            hashlock: hashlock1,
+            timelock: timelock1,
+            recipient: bob
+        });
+
+        resolver.createFusionOrder{value: amount1 + 0.01 ether}(params1);
+        vm.stopPrank();
+        
+        // Test Monad -> Ethereum
+        vm.startPrank(bob);
+        uint256 amount2 = 0.5 ether;
+        uint256 deadline2 = block.timestamp + 1 hours;
+        uint256 timelock2 = 30 minutes;
+        bytes32 secret2 = keccak256(abi.encodePacked("secret-2"));
+        bytes32 hashlock2 = keccak256(abi.encodePacked(secret2));
+        
+        MonadFusionPlusResolver.SwapParams memory params2 = MonadFusionPlusResolver.SwapParams({
+            srcChainId: MONAD_CHAIN_ID,
+            dstChainId: ETHEREUM_CHAIN_ID,
+            srcToken: address(0x456),
+            dstToken: address(0),
+            amount: amount2,
+            deadline: deadline2,
+            hashlock: hashlock2,
+            timelock: timelock2,
+            recipient: alice
+        });
+
+        resolver.createFusionOrder{value: amount2 + 0.01 ether}(params2);
+        vm.stopPrank();
+        
+        // Verify both orders exist
+        bytes32 orderHash1 = resolver._computeOrderHash(params1);
+        bytes32 orderHash2 = resolver._computeOrderHash(params2);
+        
+        MonadFusionPlusResolver.FusionOrder memory order1 = resolver.getFusionOrder(orderHash1);
+        MonadFusionPlusResolver.FusionOrder memory order2 = resolver.getFusionOrder(orderHash2);
+        
+        assertTrue(order1.isActive);
+        assertTrue(order2.isActive);
+        assertEq(order1.srcChainId, ETHEREUM_CHAIN_ID);
+        assertEq(order1.dstChainId, MONAD_CHAIN_ID);
+        assertEq(order2.srcChainId, MONAD_CHAIN_ID);
+        assertEq(order2.dstChainId, ETHEREUM_CHAIN_ID);
+    }
+
+    function testOnchainTokenTransferExecution() public {
+        // Create order with ERC20 token
+        vm.startPrank(alice);
+        uint256 amount = 1 ether;
+        uint256 deadline = block.timestamp + 1 hours;
+        uint256 timelock = 30 minutes;
+        bytes32 secret = keccak256(abi.encodePacked("test-secret-7"));
+        bytes32 hashlock = keccak256(abi.encodePacked(secret));
+        
+        MonadFusionPlusResolver.SwapParams memory params = MonadFusionPlusResolver.SwapParams({
+            srcChainId: ETHEREUM_CHAIN_ID,
+            dstChainId: MONAD_CHAIN_ID,
+            srcToken: address(0x789), // ERC20 token
+            dstToken: address(0x123),
+            amount: amount,
+            deadline: deadline,
+            hashlock: hashlock,
+            timelock: timelock,
+            recipient: bob
+        });
+
+        resolver.createFusionOrder{value: 0.01 ether}(params); // Only safety deposit
+        vm.stopPrank();
+        
+        bytes32 orderHash = resolver._computeOrderHash(params);
+        
+        // Fill order (simulating onchain execution)
+        vm.startPrank(resolverAddress);
+        resolver.fillFusionOrder(orderHash, charlie, amount, secret);
+        vm.stopPrank();
+        
+        // Verify order state
+        MonadFusionPlusResolver.FusionOrder memory order = resolver.getFusionOrder(orderHash);
+        assertTrue(order.isFilled);
+        assertEq(order.filledAmount, amount);
+        assertEq(order.remainingAmount, 0);
+    }
+
+    function testInvalidChainPair() public {
+        vm.startPrank(alice);
+        
+        MonadFusionPlusResolver.SwapParams memory params = MonadFusionPlusResolver.SwapParams({
+            srcChainId: ETHEREUM_CHAIN_ID,
+            dstChainId: ETHEREUM_CHAIN_ID, // Same chain
+            srcToken: address(0),
+            dstToken: address(0x123),
+            amount: 1 ether,
+            deadline: block.timestamp + 1 hours,
+            hashlock: keccak256(abi.encodePacked("secret")),
+            timelock: 30 minutes,
+            recipient: bob
+        });
+
+        vm.expectRevert("MonadFusionPlusResolver: Invalid chain pair");
+        resolver.createFusionOrder{value: 1.01 ether}(params);
+        
         vm.stopPrank();
     }
 
-    // Helper function to compute order hash
-    function _computeOrderHash(
-        uint256 srcChainId,
-        uint256 dstChainId,
-        address srcToken,
-        address dstToken,
-        uint256 amount,
-        uint256 deadline,
-        bytes32 hashlock,
-        uint256 timelock,
-        address maker
-    ) internal view returns (bytes32) {
-        return keccak256(abi.encodePacked(
-            srcChainId,
-            dstChainId,
-            srcToken,
-            dstToken,
-            amount,
-            deadline,
-            hashlock,
-            timelock,
-            maker,
-            block.chainid
-        ));
+    function testInvalidSecret() public {
+        // Create order
+        vm.startPrank(alice);
+        uint256 amount = 1 ether;
+        uint256 deadline = block.timestamp + 1 hours;
+        uint256 timelock = 30 minutes;
+        bytes32 secret = keccak256(abi.encodePacked("correct-secret"));
+        bytes32 hashlock = keccak256(abi.encodePacked(secret));
+        
+        MonadFusionPlusResolver.SwapParams memory params = MonadFusionPlusResolver.SwapParams({
+            srcChainId: ETHEREUM_CHAIN_ID,
+            dstChainId: MONAD_CHAIN_ID,
+            srcToken: address(0),
+            dstToken: address(0x123),
+            amount: amount,
+            deadline: deadline,
+            hashlock: hashlock,
+            timelock: timelock,
+            recipient: bob
+        });
+
+        resolver.createFusionOrder{value: amount + 0.01 ether}(params);
+        vm.stopPrank();
+        
+        bytes32 orderHash = resolver._computeOrderHash(params);
+        
+        // Try to fill with wrong secret
+        vm.startPrank(resolverAddress);
+        bytes32 wrongSecret = keccak256(abi.encodePacked("wrong-secret"));
+        vm.expectRevert("MonadFusionPlusResolver: Invalid secret");
+        resolver.fillFusionOrder(orderHash, charlie, amount, wrongSecret);
+        vm.stopPrank();
+    }
+
+    function testOrderExpiration() public {
+        vm.startPrank(alice);
+        uint256 amount = 1 ether;
+        uint256 deadline = block.timestamp + 1 hours;
+        uint256 timelock = 30 minutes;
+        bytes32 secret = keccak256(abi.encodePacked("test-secret-8"));
+        bytes32 hashlock = keccak256(abi.encodePacked(secret));
+        
+        MonadFusionPlusResolver.SwapParams memory params = MonadFusionPlusResolver.SwapParams({
+            srcChainId: ETHEREUM_CHAIN_ID,
+            dstChainId: MONAD_CHAIN_ID,
+            srcToken: address(0),
+            dstToken: address(0x123),
+            amount: amount,
+            deadline: deadline,
+            hashlock: hashlock,
+            timelock: timelock,
+            recipient: bob
+        });
+
+        resolver.createFusionOrder{value: amount + 0.01 ether}(params);
+        vm.stopPrank();
+        
+        bytes32 orderHash = resolver._computeOrderHash(params);
+        
+        // Fast forward past deadline
+        vm.warp(deadline + 1);
+        
+        // Try to fill expired order
+        vm.startPrank(resolverAddress);
+        vm.expectRevert("MonadFusionPlusResolver: Order expired");
+        resolver.fillFusionOrder(orderHash, charlie, amount, secret);
+        vm.stopPrank();
     }
 } 

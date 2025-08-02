@@ -2,12 +2,13 @@
 pragma solidity ^0.8.23;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/proxy/Clones.sol";
 import "@openzeppelin/contracts/utils/Create2.sol";
+import "./EscrowDst.sol";
 
 /**
  * @title MonadFusionPlusResolver
@@ -376,7 +377,7 @@ contract MonadFusionPlusResolver is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev Compute order hash
+     * @dev Compute order hash (internal)
      * @param params Swap parameters
      * @return Order hash
      */
@@ -396,6 +397,15 @@ contract MonadFusionPlusResolver is Ownable, ReentrancyGuard {
     }
 
     /**
+     * @dev Compute order hash (public)
+     * @param params Swap parameters
+     * @return Order hash
+     */
+    function computeOrderHash(SwapParams calldata params) external view returns (bytes32) {
+        return _computeOrderHash(params);
+    }
+
+    /**
      * @dev Verify secret against hashlock
      * @param secret Secret to verify
      * @param hashlock Hashlock to verify against
@@ -408,6 +418,9 @@ contract MonadFusionPlusResolver is Ownable, ReentrancyGuard {
     // Admin functions
     function setAuthorizedResolver(address resolver, bool authorized) external onlyOwner {
         authorizedResolvers[resolver] = authorized;
+    }
+    function setSupportedChain(uint256 chainId, bool isSupported) external onlyOwner {
+        supportedChains[chainId] = isSupported;
     }
 
     function updateOrderParameters(

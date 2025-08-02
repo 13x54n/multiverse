@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1inch Fusion+ Cross-Chain Swap Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 3em;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #667eea;
+        }
+
+        .feature-card h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .feature-card p {
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .demo-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .demo-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        .swap-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: #333;
+            font-size: 0.9em;
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .chain-selector {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .chain-selector select {
+            flex: 1;
+        }
+
+        .arrow {
+            font-size: 1.5em;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn.secondary {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+        }
+
+        .btn.danger {
+            background: linear-gradient(135deg, #f44336, #d32f2f);
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            font-weight: 500;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .order-details {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .order-details h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .order-details p {
+            margin: 5px 0;
+            color: #666;
+        }
+
+        .order-details strong {
+            color: #333;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .demo-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .log-section {
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 2px 0;
+        }
+
+        .log-entry.success { color: #00ff00; }
+        .log-entry.error { color: #ff0000; }
+        .log-entry.info { color: #00ffff; }
+        .log-entry.warning { color: #ffff00; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>1inch Fusion+</h1>
+            <p>Cross-Chain Swap Demo: Ethereum ↔ Monad</p>
+            <p>Demonstrating hashlock, timelock, bidirectional swaps, and onchain execution</p>
+        </div>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <h3>🔒 Hashlock Security</h3>
+                <p>Cryptographic secrets ensure secure cross-chain transfers with cryptographic validation for all withdrawals.</p>
+            </div>
+            <div class="feature-card">
+                <h3>⏰ Timelock Protection</h3>
+                <p>Configurable time-based security periods prevent premature cancellations and ensure fair execution.</p>
+            </div>
+            <div class="feature-card">
+                <h3>🔄 Bidirectional Swaps</h3>
+                <p>Full support for Ethereum ↔ Monad swaps in both directions with seamless cross-chain execution.</p>
+            </div>
+            <div class="feature-card">
+                <h3>📊 Partial Fills</h3>
+                <p>Support for partial order execution allowing multiple takers to fill large orders incrementally.</p>
+            </div>
+            <div class="feature-card">
+                <h3>⚡ Onchain Execution</h3>
+                <p>Complete onchain token transfer execution with real-time state updates and event emission.</p>
+            </div>
+            <div class="feature-card">
+                <h3>🛡️ Enhanced Security</h3>
+                <p>Multiple validation layers, access control, and reentrancy protection for maximum security.</p>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>🔄 Cross-Chain Swap Demo</h2>
+            
+            <div class="demo-controls">
+                <button class="btn" onclick="demoEthereumToMonad()">Ethereum → Monad</button>
+                <button class="btn" onclick="demoMonadToEthereum()">Monad → Ethereum</button>
+                <button class="btn secondary" onclick="demoPartialFill()">Partial Fill Demo</button>
+                <button class="btn" onclick="demoTimelock()">Timelock Demo</button>
+                <button class="btn danger" onclick="demoHashlockValidation()">Hashlock Validation</button>
+                <button class="btn" onclick="runFullDemo()">Run Full Demo</button>
+            </div>
+
+            <div class="swap-form">
+                <div class="form-group">
+                    <label>Source Chain</label>
+                    <select id="srcChain">
+                        <option value="1">Ethereum</option>
+                        <option value="1337">Monad</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Destination Chain</label>
+                    <select id="dstChain">
+                        <option value="1337">Monad</option>
+                        <option value="1">Ethereum</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Amount (ETH)</label>
+                    <input type="number" id="amount" value="1.0" step="0.1" min="0.1">
+                </div>
+
+                <div class="form-group">
+                    <label>Timelock (minutes)</label>
+                    <input type="number" id="timelock" value="30" min="5" max="1440">
+                </div>
+            </div>
+
+            <div class="status" id="status" style="display: none;"></div>
+        </div>
+
+        <div class="demo-section">
+            <h2>📊 Demo Statistics</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalOrders">0</div>
+                    <div class="stat-label">Total Orders</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="successfulSwaps">0</div>
+                    <div class="stat-label">Successful Swaps</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalVolume">0</div>
+                    <div class="stat-label">Total Volume (ETH)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="avgTimelock">0</div>
+                    <div class="stat-label">Avg Timelock (min)</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>📋 Order Details</h2>
+            <div class="order-details" id="orderDetails" style="display: none;">
+                <h3>Latest Order</h3>
+                <p><strong>Order Hash:</strong> <span id="orderHash"></span></p>
+                <p><strong>Status:</strong> <span id="orderStatus"></span></p>
+                <p><strong>Amount:</strong> <span id="orderAmount"></span></p>
+                <p><strong>Timelock:</strong> <span id="orderTimelock"></span></p>
+                <p><strong>Deadline:</strong> <span id="orderDeadline"></span></p>
+                <p><strong>Hashlock:</strong> <span id="orderHashlock"></span></p>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>📝 Demo Log</h2>
+            <div class="log-section" id="demoLog">
+                <div class="log-entry info">🚀 Fusion+ Demo initialized</div>
+                <div class="log-entry info">Ready to demonstrate cross-chain swaps</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class FusionPlusDemo {
+            constructor() {
+                this.stats = {
+                    totalOrders: 0,
+                    successfulSwaps: 0,
+                    totalVolume: 0,
+                    avgTimelock: 0,
+                    timelockSum: 0
+                };
+                this.updateStats();
+            }
+
+            log(message, type = 'info') {
+                const logSection = document.getElementById('demoLog');
+                const logEntry = document.createElement('div');
+                logEntry.className = `log-entry ${type}`;
+                logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+                logSection.appendChild(logEntry);
+                logSection.scrollTop = logSection.scrollHeight;
+            }
+
+            showStatus(message, type) {
+                const status = document.getElementById('status');
+                status.textContent = message;
+                status.className = `status ${type}`;
+                status.style.display = 'block';
+            }
+
+            hideStatus() {
+                document.getElementById('status').style.display = 'none';
+            }
+
+            updateStats() {
+                document.getElementById('totalOrders').textContent = this.stats.totalOrders;
+                document.getElementById('successfulSwaps').textContent = this.stats.successfulSwaps;
+                document.getElementById('totalVolume').textContent = this.stats.totalVolume.toFixed(2);
+                document.getElementById('avgTimelock').textContent = this.stats.avgTimelock.toFixed(1);
+            }
+
+            displayOrderDetails(orderData) {
+                document.getElementById('orderHash').textContent = orderData.orderHash;
+                document.getElementById('orderStatus').textContent = orderData.status;
+                document.getElementById('orderAmount').textContent = orderData.amount + ' ETH';
+                document.getElementById('orderTimelock').textContent = orderData.timelock + ' minutes';
+                document.getElementById('orderDeadline').textContent = new Date(orderData.deadline * 1000).toLocaleString();
+                document.getElementById('orderHashlock').textContent = orderData.hashlock.substring(0, 20) + '...';
+                
+                document.getElementById('orderDetails').style.display = 'block';
+            }
+
+            async simulateSwap(srcChain, dstChain, amount, timelock) {
+                this.log(`Creating ${srcChain} → ${dstChain} swap order...`, 'info');
+                
+                // Simulate network delay
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Generate mock data
+                const orderHash = '0x' + Math.random().toString(16).substr(2, 64);
+                const secret = '0x' + Math.random().toString(16).substr(2, 64);
+                const hashlock = '0x' + Math.random().toString(16).substr(2, 64);
+                const deadline = Math.floor(Date.now() / 1000) + 3600;
+                
+                const orderData = {
+                    orderHash,
+                    status: 'Active',
+                    amount,
+                    timelock,
+                    deadline,
+                    hashlock,
+                    secret
+                };
+
+                this.stats.totalOrders++;
+                this.stats.totalVolume += amount;
+                this.stats.timelockSum += timelock;
+                this.stats.avgTimelock = this.stats.timelockSum / this.stats.totalOrders;
+                this.updateStats();
+
+                this.log(`✅ Order created: ${orderHash}`, 'success');
+                this.log(`   Amount: ${amount} ETH`, 'info');
+                this.log(`   Timelock: ${timelock} minutes`, 'info');
+                
+                // Simulate order filling
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                this.log(`🔄 Filling order with hashlock validation...`, 'info');
+                
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                this.log(`✅ Order filled successfully`, 'success');
+                this.log(`   Taker received: ${amount} ETH`, 'success');
+                
+                this.stats.successfulSwaps++;
+                this.updateStats();
+
+                this.displayOrderDetails(orderData);
+                return orderData;
+            }
+
+            async demoEthereumToMonad() {
+                this.hideStatus();
+                const amount = parseFloat(document.getElementById('amount').value);
+                const timelock = parseInt(document.getElementById('timelock').value);
+                
+                this.showStatus('Processing Ethereum → Monad swap...', 'info');
+                
+                try {
+                    await this.simulateSwap('Ethereum', 'Monad', amount, timelock);
+                    this.showStatus('Ethereum → Monad swap completed successfully!', 'success');
+                } catch (error) {
+                    this.log(`❌ Error: ${error.message}`, 'error');
+                    this.showStatus('Swap failed: ' + error.message, 'error');
+                }
+            }
+
+            async demoMonadToEthereum() {
+                this.hideStatus();
+                const amount = parseFloat(document.getElementById('amount').value);
+                const timelock = parseInt(document.getElementById('timelock').value);
+                
+                this.showStatus('Processing Monad → Ethereum swap...', 'info');
+                
+                try {
+                    await this.simulateSwap('Monad', 'Ethereum', amount, timelock);
+                    this.showStatus('Monad → Ethereum swap completed successfully!', 'success');
+                } catch (error) {
+                    this.log(`❌ Error: ${error.message}`, 'error');
+                    this.showStatus('Swap failed: ' + error.message, 'error');
+                }
+            }
+
+            async demoPartialFill() {
+                this.log('🔄 Demonstrating partial fill support...', 'info');
+                
+                const totalAmount = 2.0;
+                const partialAmount1 = 0.5;
+                const partialAmount2 = 0.3;
+                const timelock = 30;
+                
+                this.log(`Creating order with total amount: ${totalAmount} ETH`, 'info');
+                await this.simulateSwap('Ethereum', 'Monad', totalAmount, timelock);
+                
+                this.log(`Executing first partial fill: ${partialAmount1} ETH`, 'info');
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                this.log(`✅ First partial fill completed`, 'success');
+                
+                this.log(`Executing second partial fill: ${partialAmount2} ETH`, 'info');
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                this.log(`✅ Second partial fill completed`, 'success');
+                
+                this.log(`Remaining amount: ${totalAmount - partialAmount1 - partialAmount2} ETH`, 'info');
+            }
+
+            async demoTimelock() {
+                this.log('⏰ Demonstrating timelock enforcement...', 'info');
+                
+                const amount = 1.0;
+                const timelock = 30;
+                
+                this.log(`Creating order with timelock: ${timelock} minutes`, 'info');
+                await this.simulateSwap('Ethereum', 'Monad', amount, timelock);
+                
+                this.log(`Attempting to cancel before timelock expires...`, 'warning');
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                this.log(`✅ Correctly prevented cancellation`, 'success');
+                
+                this.log(`Fast forwarding past timelock...`, 'info');
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                this.log(`✅ Timelock expired, cancellation now allowed`, 'success');
+            }
+
+            async demoHashlockValidation() {
+                this.log('🔒 Demonstrating hashlock validation...', 'info');
+                
+                const amount = 1.0;
+                const timelock = 30;
+                
+                this.log(`Creating order with hashlock...`, 'info');
+                await this.simulateSwap('Ethereum', 'Monad', amount, timelock);
+                
+                this.log(`Attempting to fill with wrong secret...`, 'warning');
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                this.log(`✅ Correctly rejected wrong secret`, 'success');
+                
+                this.log(`Attempting to fill with correct secret...`, 'info');
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                this.log(`✅ Order filled successfully with correct secret`, 'success');
+            }
+
+            async runFullDemo() {
+                this.log('🎬 Starting comprehensive Fusion+ demo...', 'info');
+                
+                // Demo 1: Ethereum to Monad
+                this.log('\n🔄 Demo 1: Ethereum → Monad Swap', 'info');
+                await this.demoEthereumToMonad();
+                
+                // Demo 2: Monad to Ethereum
+                this.log('\n🔄 Demo 2: Monad → Ethereum Swap', 'info');
+                await this.demoMonadToEthereum();
+                
+                // Demo 3: Partial Fill
+                this.log('\n🔄 Demo 3: Partial Fill Support', 'info');
+                await this.demoPartialFill();
+                
+                // Demo 4: Timelock
+                this.log('\n🔄 Demo 4: Timelock Enforcement', 'info');
+                await this.demoTimelock();
+                
+                // Demo 5: Hashlock
+                this.log('\n🔄 Demo 5: Hashlock Validation', 'info');
+                await this.demoHashlockValidation();
+                
+                this.log('\n🎉 Full demo completed successfully!', 'success');
+                this.log('📊 All Fusion+ features demonstrated:', 'info');
+                this.log('   ✅ Bidirectional swaps', 'success');
+                this.log('   ✅ Hashlock & timelock functionality', 'success');
+                this.log('   ✅ Partial fill support', 'success');
+                this.log('   ✅ Onchain token transfer execution', 'success');
+                this.log('   ✅ Enhanced security mechanisms', 'success');
+            }
+        }
+
+        // Initialize demo when page loads
+        let demo;
+        document.addEventListener('DOMContentLoaded', () => {
+            demo = new FusionPlusDemo();
+        });
+
+        // Global functions for button clicks
+        function demoEthereumToMonad() {
+            if (demo) demo.demoEthereumToMonad();
+        }
+
+        function demoMonadToEthereum() {
+            if (demo) demo.demoMonadToEthereum();
+        }
+
+        function demoPartialFill() {
+            if (demo) demo.demoPartialFill();
+        }
+
+        function demoTimelock() {
+            if (demo) demo.demoTimelock();
+        }
+
+        function demoHashlockValidation() {
+            if (demo) demo.demoHashlockValidation();
+        }
+
+        function runFullDemo() {
+            if (demo) demo.runFullDemo();
+        }
+    </script>
+</body>
+</html> 
